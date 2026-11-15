@@ -1,0 +1,369 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Tekken 2.5D Netcode Benchmark - Architecture",
+    "output": "project-architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "client_p1",
+      "type": "frontend",
+      "label": "Client 1 (P1 Blue)",
+      "sublabel": "Virtual Player 1",
+      "pos": [
+        60,
+        100
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "tag": "Slot 0 (Owner)"
+    },
+    {
+      "id": "client_p2",
+      "type": "frontend",
+      "label": "Client 2 (P2 Red)",
+      "sublabel": "Virtual Player 2",
+      "pos": [
+        60,
+        200
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "tag": "Slot 1 (Owner)"
+    },
+    {
+      "id": "input_sys",
+      "type": "external",
+      "label": "Input System",
+      "sublabel": "Keyboard.current",
+      "pos": [
+        60,
+        320
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "tag": "A / D / W / S"
+    },
+    {
+      "id": "lobby_ui",
+      "type": "frontend",
+      "label": "LobbyUI & HUD",
+      "sublabel": "IMGUI Telemetry",
+      "pos": [
+        60,
+        440
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "tag": "RTT / Tick 30Hz"
+    },
+    {
+      "id": "utp",
+      "type": "messagebus",
+      "label": "UnityTransport",
+      "sublabel": "UDP Socket :7777",
+      "pos": [
+        320,
+        150
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "127.0.0.1"
+    },
+    {
+      "id": "net_manager",
+      "type": "backend",
+      "label": "NetworkManager",
+      "sublabel": "NGO Core Singleton",
+      "pos": [
+        320,
+        290
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "DontDestroyOnLoad"
+    },
+    {
+      "id": "prefabs_list",
+      "type": "database",
+      "label": "DemoNetworkPrefabs",
+      "sublabel": "FighterPrefab Registry",
+      "pos": [
+        320,
+        430
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "tag": "GlobalObjectIdHash"
+    },
+    {
+      "id": "server_referee",
+      "type": "backend",
+      "label": "Dedicated Server",
+      "sublabel": "Headless Referee",
+      "pos": [
+        580,
+        150
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "Authoritative Host"
+    },
+    {
+      "id": "lobby_mgr",
+      "type": "security",
+      "label": "NetworkLobbyManager",
+      "sublabel": "Connection Approval & Slots",
+      "pos": [
+        580,
+        290
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "NetworkVariables"
+    },
+    {
+      "id": "scene_mgr",
+      "type": "cloud",
+      "label": "NetworkSceneManager",
+      "sublabel": "Synchronized Scene Load",
+      "pos": [
+        580,
+        430
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "tag": "ArenaScene"
+    },
+    {
+      "id": "spawn_mgr",
+      "type": "backend",
+      "label": "ArenaSpawnManager",
+      "sublabel": "Deterministic Placements",
+      "pos": [
+        850,
+        150
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "P1 (-4) / P2 (+4)"
+    },
+    {
+      "id": "fighter_avatar",
+      "type": "backend",
+      "label": "FighterPrefab",
+      "sublabel": "NetworkTransform + CC",
+      "pos": [
+        850,
+        290
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "Owner Authority"
+    },
+    {
+      "id": "tekken_cam",
+      "type": "frontend",
+      "label": "TekkenCamera",
+      "sublabel": "2.5D Dynamic Framing",
+      "pos": [
+        850,
+        430
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "tag": "Bounding-Box Zoom"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Client Tier (Virtual Players)",
+      "wraps": [
+        "client_p1",
+        "client_p2",
+        "input_sys",
+        "lobby_ui"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Netcode Transport & Registry",
+      "wraps": [
+        "utp",
+        "net_manager",
+        "prefabs_list"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Server Authority & Lobby Lifecycle",
+      "wraps": [
+        "server_referee",
+        "lobby_mgr",
+        "scene_mgr"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Arena Gameplay & 2.5D Stage",
+      "wraps": [
+        "spawn_mgr",
+        "fighter_avatar",
+        "tekken_cam"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "p1-to-utp",
+      "from": "client_p1",
+      "to": "utp",
+      "label": "UDP Handshake",
+      "variant": "emphasis"
+    },
+    {
+      "id": "p2-to-utp",
+      "from": "client_p2",
+      "to": "utp",
+      "label": "UDP Handshake",
+      "variant": "emphasis"
+    },
+    {
+      "id": "input-to-p1",
+      "from": "input_sys",
+      "to": "client_p1",
+      "label": "Local Input",
+      "variant": "dashed"
+    },
+    {
+      "id": "input-to-p2",
+      "from": "input_sys",
+      "to": "client_p2",
+      "label": "Local Input",
+      "variant": "dashed"
+    },
+    {
+      "id": "utp-to-server",
+      "from": "utp",
+      "to": "server_referee",
+      "label": "Binary Payloads",
+      "variant": "emphasis"
+    },
+    {
+      "id": "server-to-lobby",
+      "from": "server_referee",
+      "to": "lobby_mgr",
+      "label": "ApprovalCheck (Max 4)"
+    },
+    {
+      "id": "lobby-to-netmgr",
+      "from": "lobby_mgr",
+      "to": "net_manager",
+      "label": "NetworkVariables Sync"
+    },
+    {
+      "id": "netmgr-to-prefabs",
+      "from": "net_manager",
+      "to": "prefabs_list",
+      "label": "AddNetworkPrefab"
+    },
+    {
+      "id": "lobby-to-scenemgr",
+      "from": "lobby_mgr",
+      "to": "scene_mgr",
+      "label": "All Ready -> LoadScene"
+    },
+    {
+      "id": "scenemgr-to-spawnmgr",
+      "from": "scene_mgr",
+      "to": "spawn_mgr",
+      "label": "LoadEventCompleted"
+    },
+    {
+      "id": "spawnmgr-to-fighter",
+      "from": "spawn_mgr",
+      "to": "fighter_avatar",
+      "label": "SpawnWithOwnership"
+    },
+    {
+      "id": "fighter-to-cam",
+      "from": "fighter_avatar",
+      "to": "tekken_cam",
+      "label": "Position Tracking"
+    },
+    {
+      "id": "ui-to-lobby",
+      "from": "lobby_ui",
+      "to": "lobby_mgr",
+      "label": "ToggleReadyServerRpc",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Server Topologies",
+      "items": [
+        "Dedicated Server: Headless referee hosting on port 7777 without player avatar",
+        "Host Mode: Combines listen server authority with local Player 1 avatar",
+        "Client Mode: Dynamic IP/Port joining with authoritative connection approval"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "State Synchronization",
+      "items": [
+        "Server-authoritative NetworkVariable<ulong> for player slots (Slot 0..3)",
+        "Synchronized NetworkVariable<bool> ready states",
+        "NetworkTransform with Owner Authority replicates 2.5D X/Y movement and Y rotation"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Spawning & Physics Isolation",
+      "items": [
+        "Spawning deferred until SceneEventType.LoadEventCompleted confirms all clients",
+        "Deterministic stage positioning: P1 Left (-4, 1, 0), P2 Right (4, 1, 0)",
+        "CharacterController disabled on non-owners to eliminate PhysX interpolation jitter"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Multiplayer Play Mode (MPPM) Resilience",
+      "items": [
+        "ForceSamePrefabs disabled to prevent virtual clone asset hash discrepancies",
+        "Dynamic AddNetworkPrefab fallback resolves deferred spawn triggers instantly",
+        "Application.runInBackground enabled to prevent unfocused window throttling"
+      ]
+    }
+  ]
+}

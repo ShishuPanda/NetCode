@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Netcode Match Lifecycle & State Replication Flow",
+    "output": "project-sequence.html",
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    {
+      "id": "c1",
+      "type": "frontend",
+      "label": "Client 1 (P1)",
+      "sublabel": "Virtual Player 1"
+    },
+    {
+      "id": "utp",
+      "type": "messagebus",
+      "label": "UnityTransport",
+      "sublabel": "UDP :7777"
+    },
+    {
+      "id": "srv",
+      "type": "backend",
+      "label": "Referee Server",
+      "sublabel": "Dedicated Host"
+    },
+    {
+      "id": "lobby",
+      "type": "security",
+      "label": "LobbyManager",
+      "sublabel": "Slots & Variables"
+    },
+    {
+      "id": "arena",
+      "type": "backend",
+      "label": "SpawnManager",
+      "sublabel": "Scene Loading"
+    },
+    {
+      "id": "c2",
+      "type": "frontend",
+      "label": "Client 2 (P2)",
+      "sublabel": "Virtual Player 2"
+    }
+  ],
+  "segments": [
+    {
+      "from": 140,
+      "to": 300,
+      "label": "1. Connection Approval Handshake"
+    },
+    {
+      "from": 320,
+      "to": 480,
+      "label": "2. Slot Synchronization & Ready State"
+    },
+    {
+      "from": 500,
+      "to": 680,
+      "label": "3. Synchronized Scene Load & Spawn"
+    },
+    {
+      "from": 700,
+      "to": 880,
+      "label": "4. Owner Authority Input & Replication"
+    }
+  ],
+  "messages": [
+    {
+      "from": "c1",
+      "to": "utp",
+      "y": 170,
+      "label": "Connect(127.0.0.1:7777)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "utp",
+      "to": "srv",
+      "y": 200,
+      "label": "ConnectionRequestMessage",
+      "variant": "emphasis"
+    },
+    {
+      "from": "srv",
+      "to": "lobby",
+      "y": 230,
+      "label": "ApprovalCheck(count < 4)"
+    },
+    {
+      "from": "lobby",
+      "to": "c1",
+      "y": 260,
+      "label": "Approved -> Slot 0 (P1 Blue)"
+    },
+    {
+      "from": "c2",
+      "to": "lobby",
+      "y": 290,
+      "label": "Client 2 Joins -> Slot 1 (P2 Red)"
+    },
+    {
+      "from": "c1",
+      "to": "lobby",
+      "y": 350,
+      "label": "ToggleReadyServerRpc()",
+      "variant": "dashed"
+    },
+    {
+      "from": "c2",
+      "to": "lobby",
+      "y": 390,
+      "label": "ToggleReadyServerRpc()",
+      "variant": "dashed"
+    },
+    {
+      "from": "lobby",
+      "to": "srv",
+      "y": 430,
+      "label": "CheckMatchLaunch() [All Ready]",
+      "variant": "emphasis"
+    },
+    {
+      "from": "srv",
+      "to": "utp",
+      "y": 460,
+      "label": "LoadScene(ArenaScene, Single)"
+    },
+    {
+      "from": "utp",
+      "to": "c1",
+      "y": 520,
+      "label": "SceneEvent: Load ArenaScene"
+    },
+    {
+      "from": "utp",
+      "to": "c2",
+      "y": 550,
+      "label": "SceneEvent: Load ArenaScene"
+    },
+    {
+      "from": "srv",
+      "to": "arena",
+      "y": 590,
+      "label": "SceneEventType.LoadEventCompleted",
+      "variant": "emphasis"
+    },
+    {
+      "from": "arena",
+      "to": "c1",
+      "y": 620,
+      "label": "SpawnWithOwnership(P1) at (-4, 1, 0)"
+    },
+    {
+      "from": "arena",
+      "to": "c2",
+      "y": 650,
+      "label": "SpawnWithOwnership(P2) at (+4, 1, 0)"
+    },
+    {
+      "from": "c1",
+      "to": "utp",
+      "y": 730,
+      "label": "NetworkTransform (P1 Move/Jump/Crouch)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "utp",
+      "to": "srv",
+      "y": 760,
+      "label": "Owner Authority Transform Replication"
+    },
+    {
+      "from": "utp",
+      "to": "c2",
+      "y": 800,
+      "label": "P1 Observer Interpolation"
+    },
+    {
+      "from": "c2",
+      "to": "utp",
+      "y": 840,
+      "label": "NetworkTransform (P2 Move/Jump/Crouch)",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Connection Approval",
+      "items": [
+        "Server-authoritative check on every incoming connection",
+        "Caps max players at 4 to prevent lobby oversubscription"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Ready State RPCs",
+      "items": [
+        "Clients invoke ToggleReadyServerRpc across the network",
+        "State synchronized to all peers via NetworkVariables"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Post-Load Spawning",
+      "items": [
+        "Crucial NGO pattern: Spawning deferred until LoadEventCompleted",
+        "Guarantees all clients have loaded ArenaScene before avatars spawn"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Owner Movement Authority",
+      "items": [
+        "Only owner client evaluates Keyboard.current input",
+        "Replicated across server and opponents via NetworkTransform"
+      ]
+    }
+  ]
+}
