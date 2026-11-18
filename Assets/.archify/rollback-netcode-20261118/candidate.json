@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Tekken Rollback Netcode (GGPO) Frame Execution & Resimulation Lifecycle",
+    "output": "project-rollback.html",
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "type": "frontend",
+      "label": "Local Fighter (P1)",
+      "sublabel": "Instant 0ms Input"
+    },
+    {
+      "id": "engine",
+      "type": "backend",
+      "label": "TekkenRollbackEngine",
+      "sublabel": "60Hz Deterministic Tick"
+    },
+    {
+      "id": "ring",
+      "type": "database",
+      "label": "RingBuffer (128)",
+      "sublabel": "Deterministic Snapshots"
+    },
+    {
+      "id": "net",
+      "type": "messagebus",
+      "label": "Simulated Network",
+      "sublabel": "UDP (80ms Latency)"
+    },
+    {
+      "id": "p2",
+      "type": "frontend",
+      "label": "Remote Opponent (P2)",
+      "sublabel": "Speculative Prediction"
+    },
+    {
+      "id": "vis",
+      "type": "frontend",
+      "label": "Skeleton Mannequin",
+      "sublabel": "Hitbox/Hurtbox Posing"
+    }
+  ],
+  "segments": [
+    {
+      "from": 140,
+      "to": 320,
+      "label": "1. Frame N: Instant Local Execution & Speculative Prediction"
+    },
+    {
+      "from": 340,
+      "to": 500,
+      "label": "2. Frame N+3: Remote Packet Transit & Misprediction Detection"
+    },
+    {
+      "from": 520,
+      "to": 700,
+      "label": "3. Sub-Millisecond Rollback Rewind & Fast-Forward Resimulation"
+    },
+    {
+      "from": 720,
+      "to": 890,
+      "label": "4. Visual Reconciliation & Telemetry Update"
+    }
+  ],
+  "messages": [
+    {
+      "from": "p1",
+      "to": "engine",
+      "y": 170,
+      "label": "Frame N Local Input: LightPunch (0ms delay)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "engine",
+      "to": "net",
+      "y": 200,
+      "label": "SendPacket(Frame N, P1_Input)"
+    },
+    {
+      "from": "engine",
+      "to": "p2",
+      "y": 230,
+      "label": "Speculative Prediction: Repeat Frame N-1 Input",
+      "variant": "dashed"
+    },
+    {
+      "from": "engine",
+      "to": "ring",
+      "y": 260,
+      "label": "SaveSnapshot(Frame N, P1_Actual, P2_Predicted)"
+    },
+    {
+      "from": "engine",
+      "to": "vis",
+      "y": 290,
+      "label": "Render Frame N (P1 Active Red Hitbox)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "net",
+      "to": "engine",
+      "y": 370,
+      "label": "ReceivePacket(Frame N, P2_Actual = Guard)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "engine",
+      "to": "ring",
+      "y": 410,
+      "label": "CompareInput(Frame N): Predicted(Neutral) != Actual(Guard)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "ring",
+      "to": "engine",
+      "y": 450,
+      "label": "Misprediction Detected! Initiating Rollback Rewind",
+      "variant": "dashed"
+    },
+    {
+      "from": "engine",
+      "to": "ring",
+      "y": 550,
+      "label": "RestoreSnapshot(Frame N)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "engine",
+      "to": "ring",
+      "y": 580,
+      "label": "OverrideConfirmedInput(Frame N, P2_Guard)"
+    },
+    {
+      "from": "engine",
+      "to": "ring",
+      "y": 620,
+      "label": "ResimulateTicks(Frame N -> N+1 -> N+2 -> N+3 in <0.1ms)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "ring",
+      "to": "engine",
+      "y": 660,
+      "label": "Snapshots Re-converged & Committed to Ring Buffer"
+    },
+    {
+      "from": "engine",
+      "to": "vis",
+      "y": 750,
+      "label": "Apply Corrected Poses: P2 Guard (Blue Shield)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "engine",
+      "to": "vis",
+      "y": 790,
+      "label": "Resolve Combat: Punch Blocked (Guard Spark, 0 Damage)"
+    },
+    {
+      "from": "engine",
+      "to": "p1",
+      "y": 830,
+      "label": "HUD Telemetry Ribbon: Flash Red [R], Frame N Green [C]",
+      "variant": "dashed"
+    },
+    {
+      "from": "engine",
+      "to": "p1",
+      "y": 860,
+      "label": "Telemetry: LastResimDuration = 0.042 ms",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Instant 0ms Local Feel",
+      "items": [
+        "Local inputs execute immediately on Frame 0 with zero sluggishness",
+        "Essential for fighting games with strict 1-frame link windows"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Speculative Prediction",
+      "items": [
+        "While remote packets are in-flight, engine predicts opponent state",
+        "Default heuristic repeats opponent's last confirmed input"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Deterministic Resimulation",
+      "items": [
+        "When late packets reveal a misprediction, engine rewinds state",
+        "Deterministic C# structs re-simulate multi-frame history in <0.1ms"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Zero Visual Teleportation",
+      "items": [
+        "Rollback depth is bounded (typically 1 to 4 frames)",
+        "Micro-corrections blend seamlessly without jarring pops"
+      ]
+    }
+  ]
+}

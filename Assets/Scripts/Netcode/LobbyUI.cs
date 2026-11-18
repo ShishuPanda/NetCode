@@ -38,7 +38,7 @@ namespace TekkenNetcodeDemo
             if (nm == null || lobby == null) return;
 
             float panelWidth = 460;
-            float panelHeight = 520;
+            float panelHeight = 570;
             float x = (Screen.width - panelWidth) * 0.5f;
             float y = (Screen.height - panelHeight) * 0.5f;
 
@@ -100,6 +100,15 @@ namespace TekkenNetcodeDemo
                 GUILayout.Space(8);
                 GUILayout.Label($"<color=red><b>Error:</b> {LastConnectionError}</color>");
             }
+
+            GUILayout.Space(10);
+            var prevBg = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(0.18f, 0.8f, 0.44f);
+            if (GUILayout.Button("4. Launch Rollback Netcode Interactive Sandbox", GUILayout.Height(36)))
+            {
+                SceneManager.LoadScene("RollbackDemoScene");
+            }
+            GUI.backgroundColor = prevBg;
 
             GUILayout.Space(12);
             GUILayout.Label("<color=grey><i>Tip: Use 'Multiplayer Play Mode' to test multiple clients inside the Editor!</i></color>");
