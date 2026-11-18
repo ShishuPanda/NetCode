@@ -38,7 +38,7 @@ namespace TekkenNetcodeDemo
             if (nm == null || lobby == null) return;
 
             float panelWidth = 460;
-            float panelHeight = 570;
+            float panelHeight = 620;
             float x = (Screen.width - panelWidth) * 0.5f;
             float y = (Screen.height - panelHeight) * 0.5f;
 
@@ -107,6 +107,13 @@ namespace TekkenNetcodeDemo
             if (GUILayout.Button("4. Launch Rollback Netcode Interactive Sandbox", GUILayout.Height(36)))
             {
                 SceneManager.LoadScene("RollbackDemoScene");
+            }
+
+            GUILayout.Space(6);
+            GUI.backgroundColor = new Color(0.2f, 0.6f, 0.95f);
+            if (GUILayout.Button("5. Open Simple API Demo (Async & Coroutine)", GUILayout.Height(32)))
+            {
+                SceneManager.LoadScene("ApiDemoScene");
             }
             GUI.backgroundColor = prevBg;
 

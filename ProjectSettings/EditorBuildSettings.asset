@@ -14,6 +14,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/RollbackDemoScene.unity
     guid: 6aef7f0f7a414f108de7e6bf4fd412b7
+  - enabled: 1
+    path: Assets/Scenes/ApiDemoScene.unity
+    guid: 0e08ae6f9db0432e8636b90ad88d3211
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
