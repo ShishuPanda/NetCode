@@ -43,6 +43,15 @@ namespace TekkenNetcodeDemo.Rollback
         public uint currentFrame = 0;
         public RollbackGameState currentState;
 
+        // Live Input Tracking for On-Screen HUD Key Display
+        public RollbackInput CurrentP1RawInput { get; private set; }
+        public RollbackInput CurrentP2RawInput { get; private set; }
+        public RollbackInput CurrentP1EffectiveInput { get; private set; }
+        public RollbackInput CurrentP2EffectiveInput { get; private set; }
+        public InputButtons VirtualButtonsPressed = InputButtons.None;
+        public List<string> P1InputHistoryLog { get; } = new List<string>();
+        private InputButtons lastLoggedP1Buttons = InputButtons.None;
+
         // Simulated Network In-Flight Packet Queue
         private struct DelayedPacket
         {
@@ -50,6 +59,7 @@ namespace TekkenNetcodeDemo.Rollback
             public RollbackInput Input;
         }
         private Queue<DelayedPacket> p2NetworkQueue = new Queue<DelayedPacket>();
+        public int InFlightPacketsCount => p2NetworkQueue.Count;
         private Queue<RollbackInput> delayModeP1Buffer = new Queue<RollbackInput>();
 
         // Mannequin Skeletons
@@ -63,6 +73,8 @@ namespace TekkenNetcodeDemo.Rollback
         public double MaxResimulationDurationMs { get; private set; }
         public uint LastChecksum { get; private set; }
         public bool IsCurrentlyRollingBackThisFrame { get; private set; }
+        public float RollbackAlertTimer { get; private set; } = 0f;
+        public string LastRollbackBannerText { get; private set; } = "";
 
         // Timing accumulator for 60Hz tick
         private float tickAccumulator = 0f;
@@ -113,6 +125,12 @@ namespace TekkenNetcodeDemo.Rollback
 
         private void Update()
         {
+            // Count down rollback visual banner timer
+            if (RollbackAlertTimer > 0f)
+            {
+                RollbackAlertTimer -= Time.deltaTime;
+            }
+
             // Accumulate delta time for fixed 60Hz deterministic tick
             tickAccumulator += Time.deltaTime;
 
@@ -139,6 +157,17 @@ namespace TekkenNetcodeDemo.Rollback
             // 1. Gather raw inputs
             RollbackInput rawP1Input = SamplePlayer1Input(frame);
             RollbackInput rawP2Input = aiOpponentEnabled ? SampleAiOpponentInput(frame) : SamplePlayer2KeyboardInput(frame);
+
+            // Log P1 input changes into live arcade history stream
+            if (rawP1Input.Buttons != lastLoggedP1Buttons)
+            {
+                lastLoggedP1Buttons = rawP1Input.Buttons;
+                if (rawP1Input.Buttons != InputButtons.None)
+                {
+                    P1InputHistoryLog.Insert(0, $"Frame #{frame:0000}: {rawP1Input.ToFormattedSymbols()}");
+                    if (P1InputHistoryLog.Count > 10) P1InputHistoryLog.RemoveAt(10);
+                }
+            }
 
             // 2. Queue simulated remote network packet
             int oneWayDelayFrames = Mathf.Max(0, Mathf.RoundToInt((simulatedPingMs * 0.5f) / (FixedDeltaTime * 1000f)));
@@ -188,6 +217,11 @@ namespace TekkenNetcodeDemo.Rollback
             }
 
             p1InputHistory[bufferIndex] = effectiveP1Input;
+
+            CurrentP1RawInput = rawP1Input;
+            CurrentP2RawInput = rawP2Input;
+            CurrentP1EffectiveInput = effectiveP1Input;
+            CurrentP2EffectiveInput = effectiveP2Input;
 
             // 6. Advance simulation forward by 1 tick
             currentState = currentState.Advance(effectiveP1Input, effectiveP2Input, FixedDeltaTime);
@@ -266,9 +300,18 @@ namespace TekkenNetcodeDemo.Rollback
             {
                 MaxResimulationDurationMs = LastResimulationDurationMs;
             }
+
+            // Trigger high-visibility on-screen banner & pulse
+            RollbackAlertTimer = 1.5f;
+            LastRollbackBannerText = $"⚡ ROLLBACK REWIND: -{LastRollbackFrames} FRAMES ({LastRollbackFrames * 16.67f:F0}ms desync) ➔ RESIMULATED IN {LastResimulationDurationMs:F3}ms!";
         }
 
         #region Input Sampling
+
+        public void QueueVirtualButton(InputButtons btn)
+        {
+            VirtualButtonsPressed |= btn;
+        }
 
         private RollbackInput SamplePlayer1Input(uint frame)
         {
@@ -284,6 +327,11 @@ namespace TekkenNetcodeDemo.Rollback
                 if (kb.kKey.isPressed) buttons |= InputButtons.HeavyKick;
                 if (kb.lKey.isPressed) buttons |= InputButtons.Guard;
             }
+
+            // Combine with virtual HUD buttons and clear one-shot click
+            buttons |= VirtualButtonsPressed;
+            VirtualButtonsPressed = InputButtons.None;
+
             return new RollbackInput(frame, buttons);
         }
 
@@ -343,6 +391,23 @@ namespace TekkenNetcodeDemo.Rollback
         public void ResetMatch()
         {
             InitializeSimulation();
+        }
+
+        /// <summary>
+        /// Forces an immediate deliberate misprediction desync to demonstrate live rollback to interviewers!
+        /// </summary>
+        public void TriggerForcedRollbackTest()
+        {
+            if (currentFrame < 5) return;
+            uint targetFrame = currentFrame > 4 ? currentFrame - 4 : 0;
+            int idx = (int)(targetFrame % HistoryCapacity);
+
+            InputButtons fake = p2InputHistory[idx].Buttons.HasFlag(InputButtons.Guard)
+                ? InputButtons.LightPunch
+                : InputButtons.Guard;
+
+            p2InputHistory[idx] = new RollbackInput(targetFrame, fake);
+            ExecuteRollback(targetFrame);
         }
 
         public bool IsFrameConfirmed(uint frame)

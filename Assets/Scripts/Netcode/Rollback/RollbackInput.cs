@@ -49,5 +49,22 @@ namespace TekkenNetcodeDemo.Rollback
             if (Buttons == InputButtons.None) return "Neutral";
             return Buttons.ToString();
         }
+
+        /// <summary>
+        /// Formats active buttons with fighting game symbols for on-screen HUD telemetry.
+        /// </summary>
+        public string ToFormattedSymbols()
+        {
+            if (Buttons == InputButtons.None) return "⚪ Neutral";
+            var sb = new System.Text.StringBuilder();
+            if (IsSet(InputButtons.Left)) sb.Append("⬅️ [A] ");
+            if (IsSet(InputButtons.Right)) sb.Append("➡️ [D] ");
+            if (IsSet(InputButtons.Up)) sb.Append("⬆️ [W] ");
+            if (IsSet(InputButtons.Down)) sb.Append("⬇️ [S] ");
+            if (IsSet(InputButtons.LightPunch)) sb.Append("🥊 [J-Punch] ");
+            if (IsSet(InputButtons.HeavyKick)) sb.Append("🦵 [K-Kick] ");
+            if (IsSet(InputButtons.Guard)) sb.Append("🛡️ [L-Guard] ");
+            return sb.ToString().TrimEnd();
+        }
     }
 }
